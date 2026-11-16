@@ -132,22 +132,38 @@ return String(s).replace(/[&<>"']/g,c=>({
 }[c]));
 }
 
-async function notify(sig){
+async function sendTelegram(text){
 try{
 let r=await fetch("/api/telegram",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-text:`🚨 LIGHTNING ROULETTE
-Патерн: ${sig.pattern}
-Ставка: ${sig.bet}
-Перевірка: наступні 9 чисел.`
-})
+body:JSON.stringify({text})
 });
 if(!r.ok)console.warn("Telegram API",r.status,await r.text());
 }catch(e){
 console.warn("Telegram error",e);
 }
+}
+
+async function notify(sig){
+await sendTelegram(`🚨 LIGHTNING ROULETTE — НОВИЙ СИГНАЛ
+Комбінація: ${sig.pattern}
+Ставка: ${sig.bet}
+Перевірка починається з наступного числа.
+Очікуємо до 9 чисел.`);
+}
+
+async function notifyResult(sig,n){
+const color=n===0?"Зелений нуль":red.has(n)?"Червоне":"Чорне";
+const parity=n===0?"—":n%2===0?"Парне":"Непарне";
+const size=n===0?"—":n<=18?"Мале":"Велике";
+const win=sig.status==="WIN";
+await sendTelegram(`${win?"🏆 WIN":"❌ LOSS"} — LIGHTNING ROULETTE
+Комбінація: ${sig.pattern}
+Ставка: ${sig.bet}
+Результатне число: ${n} (${color}, ${parity}, ${size})
+Спроба: ${sig.checked}/9
+Результат: ${win?"виграш":"9 перевірок без влучання"}`);
 }
 
 function add(n,send=true){
@@ -159,8 +175,14 @@ s.checked++;
 
 if(hit(n,s.bet)){
 s.status="WIN";
+s.resultNumber=n;
+s.resultAttempt=s.checked;
+if(send)notifyResult(s,n);
 }else if(s.checked>=9){
 s.status="LOSS";
+s.resultNumber=n;
+s.resultAttempt=s.checked;
+if(send)notifyResult(s,n);
 }
 }
 
