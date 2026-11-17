@@ -168,9 +168,9 @@ await sendTelegram(`${win?"🏆 WIN":"❌ LOSS"} — LIGHTNING ROULETTE
 }
 
 function matchesRule(r){
-if(!Array.isArray(r.conditions)||r.conditions.length!==9)return false;
-if(state.numbers.length<9)return false;
-const recent=state.numbers.slice(-9);
+if(!Array.isArray(r.conditions)||r.conditions.length!==8)return false;
+if(state.numbers.length<8)return false;
+const recent=state.numbers.slice(-8);
 return r.conditions.every((condition,i)=>{
 const n=recent[i];
 if(condition==="М"||condition==="В")return bucket(n)===condition;
@@ -201,8 +201,8 @@ if(send)notifyResult(s,n);
 state.numbers.push(n);
 
 for(const r of rules){
-if(!Array.isArray(r.conditions)||r.conditions.length!==9)continue;
-if(state.numbers.length>=9&&matchesRule(r)){
+if(!Array.isArray(r.conditions)||r.conditions.length!==8)continue;
+if(state.numbers.length>=8&&matchesRule(r)){
 let sig={
 pattern:r.pattern,
 bet:r.bet,
