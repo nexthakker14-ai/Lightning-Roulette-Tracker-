@@ -186,7 +186,7 @@ await sendTelegram(`${win?"🏆 WIN":"❌ LOSS"} — LIGHTNING ROULETTE
 }
 
 function matchesRule(r){
-if(!Array.isArray(r.conditions)||![8,11].includes(r.conditions.length))return false;
+if(!Array.isArray(r.conditions)||![8,10,11].includes(r.conditions.length))return false;
 if(state.numbers.length<r.conditions.length)return false;
 
 const recent=state.numbers.slice(-r.conditions.length);
@@ -280,7 +280,7 @@ if(send)notify(sig);
 continue;
 }
 
-if(!Array.isArray(r.conditions)||![8,11].includes(r.conditions.length))continue;
+if(!Array.isArray(r.conditions)||![8,10,11].includes(r.conditions.length))continue;
 if(state.numbers.length>=r.conditions.length&&matchesRule(r)){
 const sig={
 pattern:r.pattern,
