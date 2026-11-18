@@ -33,7 +33,7 @@ td,th{text-align:left;padding:7px;border-bottom:1px solid #344253}
 <body>
 
 <h1>🎯 Lightning Roulette Tracker</h1>
-<p class="muted">Ручне введення результатів • перевірка 40 правил • сигнали на сайті</p>
+<p class="muted">Ручне введення результатів • 40 комбінацій + 4 серійні правила • сигнали на сайті</p>
 
 <div class="panel">
 <h2>Натисни число, яке випало</h2>
@@ -106,6 +106,13 @@ function bucket(n){
 return n===0?null:n<=18?"М":"В";
 }
 
+function dozen(n){
+if(n>=1&&n<=12)return 1;
+if(n>=13&&n<=24)return 2;
+if(n>=25&&n<=36)return 3;
+return null;
+}
+
 function hit(n,b){
 if(n===0)return false;
 if(b==="Червоне")return red.has(n);
@@ -114,7 +121,16 @@ if(b==="Парне")return n%2===0;
 if(b==="Непарне")return n%2===1;
 if(b==="Мале")return n<=18;
 if(b==="Велике")return n>=19;
+if(typeof b==="string"&&b.startsWith("Дюжина "))return dozen(n)===Number(b.slice(8));
 return false;
+}
+
+function hitBet(n,bet){
+return Array.isArray(bet)?bet.some(b=>hit(n,b)):hit(n,bet);
+}
+
+function betLabel(bet){
+return Array.isArray(bet)?bet.join(" + "):String(bet);
 }
 
 function save(){
@@ -146,11 +162,12 @@ console.warn("Telegram error",e);
 }
 
 async function notify(sig){
+const limit=sig.checkLimit||9;
 await sendTelegram(`🚨 LIGHTNING ROULETTE — НОВИЙ СИГНАЛ
 Комбінація: ${sig.pattern}
-Ставка: ${sig.bet}
+Ставка: ${betLabel(sig.bet)}
 Перевірка починається з наступного числа.
-Очікуємо до 9 чисел.`);
+Очікуємо до ${limit} чисел.`);
 }
 
 async function notifyResult(sig,n){
@@ -158,13 +175,14 @@ const color=n===0?"Зелений нуль":red.has(n)?"Червоне":"Чор�
 const parity=n===0?"—":n%2===0?"Парне":"Непарне";
 const size=n===0?"—":n<=18?"Мале":"Велике";
 const win=sig.status==="WIN";
+const limit=sig.checkLimit||9;
 
 await sendTelegram(`${win?"🏆 WIN":"❌ LOSS"} — LIGHTNING ROULETTE
 Комбінація: ${sig.pattern}
-Ставка: ${sig.bet}
+Ставка: ${betLabel(sig.bet)}
 Результатне число: ${n} (${color}, ${parity}, ${size})
-Спроба: ${sig.checked}/9
-Результат: ${win?"виграш":"9 перевірок без влучання"}`);
+Спроба: ${sig.checked}/${limit}
+Результат: ${win?"виграш":limit+" перевірок без влучання"}`);
 }
 
 function matchesRule(r){
@@ -180,19 +198,59 @@ return hit(n,condition);
 });
 }
 
+function streakValue(n,category){
+if(n===0)return null;
+if(category==="color")return red.has(n)?"Червоне":"Чорне";
+if(category==="parity")return n%2===0?"Парне":"Непарне";
+if(category==="size")return n<=18?"Мале":"Велике";
+if(category==="dozen")return dozen(n);
+return null;
+}
+
+function trailingStreak(values,key){
+let count=0;
+for(let i=values.length-1;i>=0;i--){
+if(values[i]!==key)break;
+count++;
+}
+return count;
+}
+
+function matchesStreakRule(r){
+if(r.type!=="streak"||state.numbers.length<r.count)return null;
+const current=streakValue(state.numbers.at(-1),r.category);
+if(current===null)return null;
+const values=state.numbers.map(n=>streakValue(n,r.category));
+const currentRun=trailingStreak(values,current);
+const previousRun=trailingStreak(values.slice(0,-1),current);
+return currentRun>=r.count&&previousRun<r.count?current:null;
+}
+
+function streakPattern(r,value){
+if(r.category==="dozen")return `${r.count} чисел ${value}-ї дюжини підряд`;
+return r.category==="color"
+?`${r.count} ${value.toLowerCase()} підряд`
+:r.category==="parity"
+?`${r.count} ${value.toLowerCase()} підряд`
+:`${r.count} ${value.toLowerCase()} підряд`;
+}
+
 function add(n,send=true){
 
+// Спочатку перевіряємо лише числа ПІСЛЯ сигналу.
+// Саме тригерне число не входить у перевірку.
 for(const s of state.signals){
 if(s.status!=="OPEN")continue;
 
 s.checked++;
+const limit=s.checkLimit||9;
 
-if(hit(n,s.bet)){
+if(hitBet(n,s.bet)){
 s.status="WIN";
 s.resultNumber=n;
 s.resultAttempt=s.checked;
 if(send)notifyResult(s,n);
-}else if(s.checked>=9){
+}else if(s.checked>=limit){
 s.status="LOSS";
 s.resultNumber=n;
 s.resultAttempt=s.checked;
@@ -203,18 +261,36 @@ if(send)notifyResult(s,n);
 state.numbers.push(n);
 
 for(const r of rules){
-if(!Array.isArray(r.conditions)||![8,11].includes(r.conditions.length))continue;
+if(r.type==="streak"){
+const value=matchesStreakRule(r);
+if(value===null)continue;
+const bet=r.bets[String(value)];
+if(!bet)continue;
 
-if(state.numbers.length>=r.conditions.length&&matchesRule(r)){
-let sig={
-pattern:r.pattern,
-bet:r.bet,
+const sig={
+pattern:streakPattern(r,value),
+rulePattern:r.pattern,
+bet,
+checkLimit:r.checkLimit||9,
 status:"OPEN",
 checked:0
 };
-
 state.signals.push(sig);
+if(send)notify(sig);
+continue;
+}
 
+if(!Array.isArray(r.conditions)||![8,11].includes(r.conditions.length))continue;
+if(state.numbers.length>=r.conditions.length&&matchesRule(r)){
+const sig={
+pattern:r.pattern,
+rulePattern:r.pattern,
+bet:r.bet,
+checkLimit:9,
+status:"OPEN",
+checked:0
+};
+state.signals.push(sig);
 if(send)notify(sig);
 }
 }
@@ -238,7 +314,7 @@ $("last").textContent=n===undefined
 let a=state.signals.filter(s=>s.status==="OPEN");
 
 $("signals").innerHTML=a.length
-?a.map(s=>`<div class="signal"><b>СИГНАЛ: ${esc(s.bet)}</b><br>Патерн ${esc(s.pattern)} • перевірено ${s.checked}/9 наступних чисел</div>`).join("")
+?a.map(s=>`<div class="signal"><b>СИГНАЛ: ${esc(betLabel(s.bet))}</b><br>Патерн ${esc(s.pattern)} • перевірено ${s.checked}/${s.checkLimit||9} наступних чисел</div>`).join("")
 :"Немає активних сигналів";
 
 $("count").textContent=state.numbers.length;
@@ -247,7 +323,7 @@ $("losses").textContent=state.signals.filter(s=>s.status==="LOSS").length;
 $("open").textContent=a.length;
 
 $("log").innerHTML=state.signals.slice().reverse().map(s=>
-`<tr><td>${esc(s.pattern)}</td><td>${esc(s.bet)}</td><td>${esc(s.status)}</td><td>${s.checked}/9</td></tr>`
+`<tr><td>${esc(s.pattern)}</td><td>${esc(betLabel(s.bet))}</td><td>${esc(s.status)}</td><td>${s.checked}/${s.checkLimit||9}</td></tr>`
 ).join("");
 
 $("history").textContent=state.numbers.slice().reverse().join(" · ")||"—";
@@ -294,7 +370,7 @@ rules=x;
 // Прибираємо лише застарілі активні сигнали для правил, чиї комбінації змінилися.
 // Завершена історія сигналів залишається без змін.
 const currentPatterns=new Set(rules.map(r=>r.pattern));
-state.signals=state.signals.filter(s=>s.status!=="OPEN"||currentPatterns.has(s.pattern));
+state.signals=state.signals.filter(s=>s.status!=="OPEN"||currentPatterns.has(s.rulePattern||s.pattern));
 localStorage.setItem("lrt-state",JSON.stringify(state));
 render();
 })
