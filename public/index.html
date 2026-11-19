@@ -18,6 +18,7 @@ h2{font-size:19px}
 .red{background:#bd3038}
 .black{background:#252b34}
 .zero{background:#16834b}
+.num.selected{outline:3px solid #ffd54a;outline-offset:2px;box-shadow:0 0 0 2px #10151d}
 .stat{display:flex;gap:18px;flex-wrap:wrap}
 .stat b{font-size:22px}
 .signal{border-left:4px solid #28bd78;padding:10px;background:#142c28;margin:8px 0;border-radius:8px}
@@ -307,6 +308,9 @@ function render(){
 
 let n=state.numbers.at(-1);
 
+// Виділяємо останнє введене число на клавіатурі.
+document.querySelectorAll(".num").forEach(b=>b.classList.toggle("selected",Number(b.dataset.number)===n));
+
 $("last").textContent=n===undefined
 ?"Ще немає чисел"
 :`${n} — ${n===0?"зелений нуль":red.has(n)?"червоне":"чорне"}; ${n===0?"—":(n%2===0?"парне":"непарне")+", "+(n<=18?"мале":"велике")}`;
@@ -333,6 +337,7 @@ for(let n=0;n<=36;n++){
 let b=document.createElement("button");
 b.textContent=n;
 b.className="num "+(n===0?"zero":red.has(n)?"red":"black");
+b.dataset.number=n;
 b.onclick=()=>add(n);
 $("numbers").append(b);
 }
