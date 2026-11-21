@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="uk">
 <head>
@@ -356,9 +355,9 @@ function enableSound(){
 }
 
 /*
- SIGNAL = 5 звуків
- WIN = 2 звуки
- LOSS = 2 звуки
+ SIGNAL = оригінальний звук (3 ноти)
+ WIN = окремий високий звук (2 ноти)
+ LOSS = окремий низький звук (2 ноти)
 */
 
 function playSound(kind){
@@ -374,28 +373,29 @@ function playSound(kind){
 
  if(kind==="signal"){
 
+  // Оригінальний звук сигналу — без змін.
   notes=[
-   {f:1100,d:0.20},
-   {f:750,d:0.20},
-   {f:1100,d:0.20},
-   {f:750,d:0.20},
-   {f:1300,d:0.30}
+   {f:880,d:0.16},
+   {f:1175,d:0.18},
+   {f:1480,d:0.24}
   ];
 
  }
  else if(kind==="win"){
 
+  // Новий звук WIN.
   notes=[
-   {f:850,d:0.25},
-   {f:1250,d:0.35}
+   {f:1400,d:0.16},
+   {f:1800,d:0.30}
   ];
 
  }
  else{
 
+  // Новий звук LOSS.
   notes=[
-   {f:450,d:0.30},
-   {f:300,d:0.40}
+   {f:260,d:0.30},
+   {f:180,d:0.40}
   ];
 
  }
@@ -434,6 +434,7 @@ function playSound(kind){
 
 async function notify(sig){
 
+ // Звук сигналу залишається оригінальним.
  playSound("signal");
 
  const limit=sig.checkLimit||9;
@@ -449,6 +450,7 @@ async function notifyResult(sig,n){
 
  const win=sig.status==="WIN";
 
+ // Тільки результат отримує новий звук.
  playSound(win?"win":"loss");
 
  const color=n===0
