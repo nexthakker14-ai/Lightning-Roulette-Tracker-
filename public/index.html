@@ -29,16 +29,15 @@ button{font:inherit;background:#34465b;color:white;border:0;border-radius:8px;pa
 table{width:100%;border-collapse:collapse}
 td,th{text-align:left;padding:7px;border-bottom:1px solid #344253}
 #history{word-break:break-word;line-height:1.8}
-.boards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
-.board{background:#1a2431;border:1px solid #344253;border-radius:14px;padding:14px;min-width:0}
-.board h2{margin:0 0 10px}
-.board-item{padding:10px;background:#142c28;border-radius:8px;margin:8px 0;overflow-wrap:anywhere}
-.board-value{font-size:21px;font-weight:800}
-.board-meta{font-size:13px;color:#9eacbc;margin-top:4px}
+.signal-result{background:#1a2431;border:1px solid #344253;border-radius:14px;padding:12px 14px;margin:14px 0}
+.signal-result-row{display:grid;grid-template-columns:105px 1fr;gap:10px;align-items:start;padding:8px 0}
+.signal-result-row+ .signal-result-row{border-top:1px solid #344253}
+.signal-result-label{font-weight:800;color:#9eacbc}
+.signal-result-value{font-weight:700;overflow-wrap:anywhere}
 .board-open{color:#ffd166}.board-win{color:#28bd78}.board-loss{color:#ff7272}
 .sound-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0}
 #soundButton{background:#3d526b}
-@media(max-width:560px){.boards{grid-template-columns:1fr}}
+@media(max-width:560px){.signal-result-row{grid-template-columns:82px 1fr}}
 </style>
 </head>
 <body>
@@ -46,16 +45,17 @@ td,th{text-align:left;padding:7px;border-bottom:1px solid #344253}
 <h1>🎯 Lightning Roulette Tracker</h1>
 <p class="muted">Ручне введення результатів • 52 комбінації + 3 серійні правила • сигнали на сайті</p>
 
-<div class="boards">
-  <section class="board">
-    <h2>📣 СИГНАЛ</h2>
-    <div id="signalBoard" class="muted">Очікуємо сигнал</div>
-  </section>
-  <section class="board">
-    <h2>🏁 РЕЗУЛЬТАТ</h2>
-    <div id="resultBoard" class="muted">Очікуємо результат</div>
-  </section>
+<div class="signal-result" aria-live="polite">
+  <div class="signal-result-row">
+    <div class="signal-result-label">Сигнал</div>
+    <div id="signalBoard" class="signal-result-value muted">Очікуємо сигнал</div>
+  </div>
+  <div class="signal-result-row">
+    <div class="signal-result-label">Результат</div>
+    <div id="resultBoard" class="signal-result-value muted">Очікуємо результат</div>
+  </div>
 </div>
+
 <div class="sound-row">
   <button id="soundButton" type="button">🔔 Увімкнути звук</button>
   <span id="soundStatus" class="small muted">Звук вимкнено</span>
@@ -398,26 +398,19 @@ $("last").textContent=n===undefined
 let a=state.signals.filter(s=>s.status==="OPEN");
 
 const recentSignals=state.signals.slice(-5).reverse();
-$("signalBoard").innerHTML=recentSignals.length
- ?recentSignals.map(s=>`<div class="board-item">
-   <div class="board-value">${esc(betLabel(s.bet))}</div>
-   <div class="board-meta">${esc(s.pattern)}</div>
-  </div>`).join("")
+
+$("signalBoard").textContent=recentSignals.length
+ ?recentSignals.map(s=>betLabel(s.bet)).join(", ")
  :"Очікуємо сигнал";
 
 $("resultBoard").innerHTML=recentSignals.length
  ?recentSignals.map(s=>{
    const limit=s.checkLimit||9;
    const attempt=s.resultAttempt||s.checked||0;
-   const status=s.status==="WIN"?"WIN":s.status==="LOSS"?"LOSS":`${s.checked||0} з ${limit}`;
+   const status=s.status==="WIN"?"WIN":s.status==="LOSS"?"LOSS": "Очікується";
    const cls=s.status==="WIN"?"board-win":s.status==="LOSS"?"board-loss":"board-open";
-   const resultNumber=s.resultNumber!==undefined?` • число ${s.resultNumber}`:"";
-   return `<div class="board-item">
-    <div class="board-value ${cls}">${status}</div>
-    <div class="board-meta">${attempt} з ${limit}${resultNumber}</div>
-    <div class="board-meta">${esc(betLabel(s.bet))} • ${esc(s.pattern)}</div>
-   </div>`;
-  }).join("")
+   return `<span class="${cls}">${status} ${attempt}/${limit}</span>`;
+  }).join(", ")
  :"Очікуємо результат";
 
 $("signals").innerHTML=a.length
