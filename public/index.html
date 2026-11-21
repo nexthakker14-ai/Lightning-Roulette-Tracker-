@@ -14,16 +14,6 @@ h2{font-size:19px}
 .muted{color:#9eacbc}
 .panel{background:#1a2431;border:1px solid #344253;border-radius:14px;padding:14px;margin:14px 0}
 .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}
-.signal-board{width:100%;margin:0 0 14px}
-.signal-board-title{font-size:20px;font-weight:800;text-align:center;letter-spacing:.08em;margin:0 0 10px}
-.signal-card{background:#142c28;border:1px solid #28664f;border-radius:12px;padding:12px;margin:9px 0;text-align:center}
-.signal-card .bet-name{font-size:clamp(21px,4vw,30px);font-weight:850;line-height:1.2;margin:5px 0 9px}
-.signal-card .result-title{font-weight:800;letter-spacing:.06em;margin-top:8px}
-.signal-card .result-value{font-size:19px;font-weight:750;margin-top:3px}
-.signal-card.win{background:#123a2b;border-color:#27bd78}
-.signal-card.loss{background:#3b2025;border-color:#bd4650}
-.signal-card.pending{background:#1b2b3c;border-color:#4b759c}
-.signal-meta{font-size:14px;color:#c3d0dd}
 .num{padding:13px 2px;border:0;border-radius:9px;color:white;font-size:17px;font-weight:700;min-height:46px}
 .red{background:#bd3038}
 .black{background:#252b34}
@@ -39,6 +29,16 @@ button{font:inherit;background:#34465b;color:white;border:0;border-radius:8px;pa
 table{width:100%;border-collapse:collapse}
 td,th{text-align:left;padding:7px;border-bottom:1px solid #344253}
 #history{word-break:break-word;line-height:1.8}
+.boards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.board{background:#1a2431;border:1px solid #344253;border-radius:14px;padding:14px;min-width:0}
+.board h2{margin:0 0 10px}
+.board-item{padding:10px;background:#142c28;border-radius:8px;margin:8px 0;overflow-wrap:anywhere}
+.board-value{font-size:21px;font-weight:800}
+.board-meta{font-size:13px;color:#9eacbc;margin-top:4px}
+.board-open{color:#ffd166}.board-win{color:#28bd78}.board-loss{color:#ff7272}
+.sound-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0}
+#soundButton{background:#3d526b}
+@media(max-width:560px){.boards{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -46,12 +46,23 @@ td,th{text-align:left;padding:7px;border-bottom:1px solid #344253}
 <h1>🎯 Lightning Roulette Tracker</h1>
 <p class="muted">Ручне введення результатів • 52 комбінації + 3 серійні правила • сигнали на сайті</p>
 
-<div class="panel">
-<div class="signal-board">
-  <div class="signal-board-title">СТАВКА</div>
-  <div id="signalBoard" class="muted">Очікуємо перший сигнал</div>
+<div class="boards">
+  <section class="board">
+    <h2>📣 СИГНАЛ</h2>
+    <div id="signalBoard" class="muted">Очікуємо сигнал</div>
+  </section>
+  <section class="board">
+    <h2>🏁 РЕЗУЛЬТАТ</h2>
+    <div id="resultBoard" class="muted">Очікуємо результат</div>
+  </section>
 </div>
-<h2 style="text-align:center">Натисни число, яке випало</h2>
+<div class="sound-row">
+  <button id="soundButton" type="button">🔔 Увімкнути звук</button>
+  <span id="soundStatus" class="small muted">Звук вимкнено</span>
+</div>
+
+<div class="panel">
+<h2>Натисни число, яке випало</h2>
 <div class="grid" id="numbers"></div>
 <div class="actions" style="margin-top:10px">
 <button id="undo">Скасувати останнє</button>
@@ -63,7 +74,7 @@ td,th{text-align:left;padding:7px;border-bottom:1px solid #344253}
 <div class="panel">
 <h2>Останній результат</h2>
 <div id="last" class="muted">Ще немає чисел</div>
-<h2>Стан системи</h2>
+<h2>Активні сигнали</h2>
 <div id="signals" class="muted">Сигналів поки немає</div>
 </div>
 
@@ -145,7 +156,7 @@ return Array.isArray(bet)?bet.some(b=>hit(n,b)):hit(n,bet);
 }
 
 function betLabel(bet){
-return Array.isArray(bet)?bet.join(", "):String(bet);
+return Array.isArray(bet)?bet.join(" + "):String(bet);
 }
 
 function save(){
@@ -176,30 +187,62 @@ console.warn("Telegram error",e);
 }
 }
 
-function playAlert(kind){
-try{
-const AudioCtx=window.AudioContext||window.webkitAudioContext;
-if(!AudioCtx)return;
-const ctx=new AudioCtx();
-const notes=kind==="signal"?[660,880]:kind==="win"?[880,1175,1480]:[440,330];
-let start=ctx.currentTime;
-notes.forEach((freq,i)=>{
-const osc=ctx.createOscillator();
-const gain=ctx.createGain();
-osc.type="sine";
-osc.frequency.value=freq;
-gain.gain.setValueAtTime(0.0001,start+i*0.16);
-gain.gain.exponentialRampToValueAtTime(0.16,start+i*0.16+0.02);
-gain.gain.exponentialRampToValueAtTime(0.0001,start+i*0.16+0.13);
-osc.connect(gain);gain.connect(ctx.destination);
-osc.start(start+i*0.16);osc.stop(start+i*0.16+0.14);
-});
-setTimeout(()=>ctx.close(),notes.length*180+250);
-}catch(e){console.warn("Audio alert unavailable",e);}
+// Звук дозволяється після натискання кнопки користувачем.
+let audioContext=null;
+let soundEnabled=false;
+let soundQueueTime=0;
+
+function playSound(kind){
+ if(!soundEnabled||!audioContext)return;
+ const start=Math.max(audioContext.currentTime+0.03,soundQueueTime);
+ const notes=kind==="signal"
+  ?[{f:880,d:0.16},{f:1175,d:0.18},{f:1480,d:0.24}]
+  :[{f:660,d:0.20},{f:990,d:0.20},{f:1320,d:0.28}];
+ let t=start;
+ for(const note of notes){
+  const osc=audioContext.createOscillator();
+  const gain=audioContext.createGain();
+  osc.type="sine";
+  osc.frequency.setValueAtTime(note.f,t);
+  gain.gain.setValueAtTime(0.0001,t);
+  gain.gain.exponentialRampToValueAtTime(0.22,t+0.025);
+  gain.gain.exponentialRampToValueAtTime(0.0001,t+note.d);
+  osc.connect(gain);
+  gain.connect(audioContext.destination);
+  osc.start(t);
+  osc.stop(t+note.d+0.02);
+  t+=note.d+0.07;
+ }
+ soundQueueTime=t+0.12;
 }
 
+$("soundButton").addEventListener("click",async()=>{
+ try{
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  if(!AudioCtx){
+   $("soundStatus").textContent="Браузер не підтримує звукові сповіщення";
+   return;
+  }
+  if(!audioContext)audioContext=new AudioCtx();
+  if(soundEnabled){
+   soundEnabled=false;
+   $("soundButton").textContent="🔔 Увімкнути звук";
+   $("soundStatus").textContent="Звук вимкнено";
+   return;
+  }
+  await audioContext.resume();
+  soundEnabled=true;
+  $("soundButton").textContent="🔕 Вимкнути звук";
+  $("soundStatus").textContent="Звук увімкнено";
+  playSound("signal");
+ }catch(e){
+  $("soundStatus").textContent="Не вдалося увімкнути звук";
+  console.warn("Audio error",e);
+ }
+});
+
 async function notify(sig){
-playAlert("signal");
+playSound("signal");
 const limit=sig.checkLimit||9;
 await sendTelegram(`🚨 LIGHTNING ROULETTE — НОВИЙ СИГНАЛ
 Комбінація: ${sig.pattern}
@@ -209,7 +252,7 @@ await sendTelegram(`🚨 LIGHTNING ROULETTE — НОВИЙ СИГНАЛ
 }
 
 async function notifyResult(sig,n){
-playAlert(sig.status==="WIN"?"win":"loss");
+playSound("result");
 const color=n===0?"Зелений нуль":red.has(n)?"Червоне":"Чорне";
 const parity=n===0?"—":n%2===0?"Парне":"Непарне";
 const size=n===0?"—":n<=18?"Мале":"Велике";
@@ -346,7 +389,6 @@ function render(){
 
 let n=state.numbers.at(-1);
 
-// Виділяємо останнє введене число на клавіатурі.
 document.querySelectorAll(".num").forEach(b=>b.classList.toggle("selected",Number(b.dataset.number)===n));
 
 $("last").textContent=n===undefined
@@ -354,24 +396,29 @@ $("last").textContent=n===undefined
 :`${n} — ${n===0?"зелений нуль":red.has(n)?"червоне":"чорне"}; ${n===0?"—":(n%2===0?"парне":"непарне")+", "+(n<=18?"мале":"велике")}`;
 
 let a=state.signals.filter(s=>s.status==="OPEN");
-const shownSignals=state.signals.slice(-8).reverse();
-$("signalBoard").innerHTML=shownSignals.length
-?shownSignals.map(s=>{
-const limit=s.checkLimit||9;
-const status=s.status==="OPEN"?"ОЧІКУЄМО":s.status;
-const cls=s.status==="WIN"?"win":s.status==="LOSS"?"loss":"pending";
-const result=s.status==="OPEN"
-?`Очікуємо результат • спроба ${s.checked}/${limit}`
-:`${s.status} — число ${s.resultNumber} • спроба ${s.resultAttempt||s.checked} з ${limit}`;
-return `<div class="signal-card ${cls}">
-<div class="signal-board-title">СТАВКА</div>
-<div class="bet-name">${esc(betLabel(s.bet))}</div>
-<div class="signal-meta">Патерн: ${esc(s.pattern)}</div>
-<div class="result-title">РЕЗУЛЬТАТ</div>
-<div class="result-value">${esc(result)}</div>
-</div>`;
-}).join("")
-:"Немає активних сигналів";
+
+const recentSignals=state.signals.slice(-5).reverse();
+$("signalBoard").innerHTML=recentSignals.length
+ ?recentSignals.map(s=>`<div class="board-item">
+   <div class="board-value">${esc(betLabel(s.bet))}</div>
+   <div class="board-meta">${esc(s.pattern)}</div>
+  </div>`).join("")
+ :"Очікуємо сигнал";
+
+$("resultBoard").innerHTML=recentSignals.length
+ ?recentSignals.map(s=>{
+   const limit=s.checkLimit||9;
+   const attempt=s.resultAttempt||s.checked||0;
+   const status=s.status==="WIN"?"WIN":s.status==="LOSS"?"LOSS":`${s.checked||0} з ${limit}`;
+   const cls=s.status==="WIN"?"board-win":s.status==="LOSS"?"board-loss":"board-open";
+   const resultNumber=s.resultNumber!==undefined?` • число ${s.resultNumber}`:"";
+   return `<div class="board-item">
+    <div class="board-value ${cls}">${status}</div>
+    <div class="board-meta">${attempt} з ${limit}${resultNumber}</div>
+    <div class="board-meta">${esc(betLabel(s.bet))} • ${esc(s.pattern)}</div>
+   </div>`;
+  }).join("")
+ :"Очікуємо результат";
 
 $("signals").innerHTML=a.length
 ?a.map(s=>`<div class="signal"><b>СИГНАЛ: ${esc(betLabel(s.bet))}</b><br>Патерн ${esc(s.pattern)} • перевірено ${s.checked}/${s.checkLimit||9} наступних чисел</div>`).join("")
@@ -428,8 +475,6 @@ return r.json();
 })
 .then(x=>{
 rules=x;
-// Прибираємо лише застарілі активні сигнали для правил, чиї комбінації змінилися.
-// Завершена історія сигналів залишається без змін.
 const currentPatterns=new Set(rules.map(r=>r.pattern));
 state.signals=state.signals.filter(s=>s.status!=="OPEN"||currentPatterns.has(s.rulePattern||s.pattern));
 localStorage.setItem("lrt-state",JSON.stringify(state));
