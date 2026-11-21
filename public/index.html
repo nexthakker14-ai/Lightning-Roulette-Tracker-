@@ -29,37 +29,22 @@ button{font:inherit;background:#34465b;color:white;border:0;border-radius:8px;pa
 table{width:100%;border-collapse:collapse}
 td,th{text-align:left;padding:7px;border-bottom:1px solid #344253}
 #history{word-break:break-word;line-height:1.8}
-.signal-result{background:#1a2431;border:1px solid #344253;border-radius:14px;padding:12px 14px;margin:14px 0}
-.signal-result-row{display:grid;grid-template-columns:105px 1fr;gap:10px;align-items:start;padding:8px 0}
-.signal-result-row+ .signal-result-row{border-top:1px solid #344253}
-.signal-result-label{font-weight:800;color:#9eacbc}
-.signal-result-value{font-weight:700;overflow-wrap:anywhere}
-.board-open{color:#ffd166}.board-win{color:#28bd78}.board-loss{color:#ff7272}
-.sound-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0}
-#soundButton{background:#3d526b}
-@media(max-width:560px){.signal-result-row{grid-template-columns:82px 1fr}}
+.boards{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:8px 0}
+.board{background:#1a2431;border:1px solid #344253;border-radius:10px;padding:8px;min-width:0}
+.board h2{font-size:14px;margin:0 0 5px}
+.board-item{padding:5px 7px;background:#142c28;border-radius:6px;margin:4px 0;overflow-wrap:anywhere}
+.board-value{font-size:16px;font-weight:800}
+.board-meta{font-size:11px;color:#9eacbc;margin-top:2px}
+.board-open{color:#ffd166}
+.board-win{color:#28bd78}
+.board-loss{color:#ff7272}
+@media(max-width:560px){.boards{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 
 <h1>🎯 Lightning Roulette Tracker</h1>
 <p class="muted">Ручне введення результатів • 52 комбінації + 3 серійні правила • сигнали на сайті</p>
-
-<div class="signal-result" aria-live="polite">
-  <div class="signal-result-row">
-    <div class="signal-result-label">Сигнал</div>
-    <div id="signalBoard" class="signal-result-value muted">Очікуємо сигнал</div>
-  </div>
-  <div class="signal-result-row">
-    <div class="signal-result-label">Результат</div>
-    <div id="resultBoard" class="signal-result-value muted">Очікуємо результат</div>
-  </div>
-</div>
-
-<div class="sound-row">
-  <button id="soundButton" type="button">🔔 Увімкнути звук</button>
-  <span id="soundStatus" class="small muted">Звук вимкнено</span>
-</div>
 
 <div class="panel">
 <h2>Натисни число, яке випало</h2>
@@ -69,6 +54,17 @@ td,th{text-align:left;padding:7px;border-bottom:1px solid #344253}
 <button id="export">Експорт резервної копії</button>
 <button id="reset">Очистити історію</button>
 </div>
+</div>
+
+<div class="boards" aria-live="polite">
+<section class="board">
+<h2>СИГНАЛ</h2>
+<div id="signalBoard" class="muted"></div>
+</section>
+<section class="board">
+<h2>РЕЗУЛЬТАТ</h2>
+<div id="resultBoard" class="muted"></div>
+</section>
 </div>
 
 <div class="panel">
@@ -187,59 +183,46 @@ console.warn("Telegram error",e);
 }
 }
 
-// Звук дозволяється після натискання кнопки користувачем.
+// Звук автоматично активується після першого натискання числа.
 let audioContext=null;
 let soundEnabled=false;
 let soundQueueTime=0;
 
-function playSound(kind){
- if(!soundEnabled||!audioContext)return;
- const start=Math.max(audioContext.currentTime+0.03,soundQueueTime);
- const notes=kind==="signal"
-  ?[{f:880,d:0.16},{f:1175,d:0.18},{f:1480,d:0.24}]
-  :[{f:660,d:0.20},{f:990,d:0.20},{f:1320,d:0.28}];
- let t=start;
- for(const note of notes){
-  const osc=audioContext.createOscillator();
-  const gain=audioContext.createGain();
-  osc.type="sine";
-  osc.frequency.setValueAtTime(note.f,t);
-  gain.gain.setValueAtTime(0.0001,t);
-  gain.gain.exponentialRampToValueAtTime(0.22,t+0.025);
-  gain.gain.exponentialRampToValueAtTime(0.0001,t+note.d);
-  osc.connect(gain);
-  gain.connect(audioContext.destination);
-  osc.start(t);
-  osc.stop(t+note.d+0.02);
-  t+=note.d+0.07;
- }
- soundQueueTime=t+0.12;
+function enableSound(){
+try{
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+if(!AudioCtx)return;
+if(!audioContext)audioContext=new AudioCtx();
+audioContext.resume();
+soundEnabled=true;
+}catch(e){
+console.warn("Audio error",e);
+}
 }
 
-$("soundButton").addEventListener("click",async()=>{
- try{
-  const AudioCtx=window.AudioContext||window.webkitAudioContext;
-  if(!AudioCtx){
-   $("soundStatus").textContent="Браузер не підтримує звукові сповіщення";
-   return;
-  }
-  if(!audioContext)audioContext=new AudioCtx();
-  if(soundEnabled){
-   soundEnabled=false;
-   $("soundButton").textContent="🔔 Увімкнути звук";
-   $("soundStatus").textContent="Звук вимкнено";
-   return;
-  }
-  await audioContext.resume();
-  soundEnabled=true;
-  $("soundButton").textContent="🔕 Вимкнути звук";
-  $("soundStatus").textContent="Звук увімкнено";
-  playSound("signal");
- }catch(e){
-  $("soundStatus").textContent="Не вдалося увімкнути звук";
-  console.warn("Audio error",e);
- }
-});
+function playSound(kind){
+if(!soundEnabled||!audioContext)return;
+const start=Math.max(audioContext.currentTime+0.03,soundQueueTime);
+const notes=kind==="signal"
+?[{f:880,d:0.16},{f:1175,d:0.18},{f:1480,d:0.24}]
+:[{f:660,d:0.20},{f:990,d:0.20},{f:1320,d:0.28}];
+let t=start;
+for(const note of notes){
+const osc=audioContext.createOscillator();
+const gain=audioContext.createGain();
+osc.type="sine";
+osc.frequency.setValueAtTime(note.f,t);
+gain.gain.setValueAtTime(0.0001,t);
+gain.gain.exponentialRampToValueAtTime(0.22,t+0.025);
+gain.gain.exponentialRampToValueAtTime(0.0001,t+note.d);
+osc.connect(gain);
+gain.connect(audioContext.destination);
+osc.start(t);
+osc.stop(t+note.d+0.02);
+t+=note.d+0.07;
+}
+soundQueueTime=t+0.12;
+}
 
 async function notify(sig){
 playSound("signal");
@@ -318,9 +301,8 @@ return r.category==="color"
 }
 
 function add(n,send=true){
-
-// Спочатку перевіряємо лише числа ПІСЛЯ сигналу.
-// Саме тригерне число не входить у перевірку.
+// Завершені сигнали зникають з верхніх полів після наступного введеного числа.
+// Тригерне число не входить у перевірку.
 for(const s of state.signals){
 if(s.status!=="OPEN")continue;
 
@@ -329,11 +311,13 @@ const limit=s.checkLimit||9;
 
 if(hitBet(n,s.bet)){
 s.status="WIN";
+s.resolvedAt=state.numbers.length+1;
 s.resultNumber=n;
 s.resultAttempt=s.checked;
 if(send)notifyResult(s,n);
 }else if(s.checked>=limit){
 s.status="LOSS";
+s.resolvedAt=state.numbers.length+1;
 s.resultNumber=n;
 s.resultAttempt=s.checked;
 if(send)notifyResult(s,n);
@@ -397,21 +381,18 @@ $("last").textContent=n===undefined
 
 let a=state.signals.filter(s=>s.status==="OPEN");
 
-const recentSignals=state.signals.slice(-5).reverse();
+const recentSignals=state.signals.filter(s=>s.status==="OPEN"||s.resolvedAt===state.numbers.length).slice(-5).reverse();
 
-$("signalBoard").textContent=recentSignals.length
- ?recentSignals.map(s=>betLabel(s.bet)).join(", ")
- :"Очікуємо сигнал";
+$("signalBoard").innerHTML=recentSignals.length
+?recentSignals.map(s=>`<div class="board-item"><div class="board-value">${esc(betLabel(s.bet))}</div></div>`).join("")
+:"";
 
 $("resultBoard").innerHTML=recentSignals.length
- ?recentSignals.map(s=>{
-   const limit=s.checkLimit||9;
-   const attempt=s.resultAttempt||s.checked||0;
-   const status=s.status==="WIN"?"WIN":s.status==="LOSS"?"LOSS": "Очікується";
-   const cls=s.status==="WIN"?"board-win":s.status==="LOSS"?"board-loss":"board-open";
-   return `<span class="${cls}">${status} ${attempt}/${limit}</span>`;
-  }).join(", ")
- :"Очікуємо результат";
+?recentSignals.filter(s=>s.status!=="OPEN").map(s=>{
+const cls=s.status==="WIN"?"board-win":"board-loss";
+return `<div class="board-item"><div class="board-value ${cls}">${s.status} ${s.resultAttempt}/${s.checkLimit||9}</div></div>`;
+}).join("")
+:"";
 
 $("signals").innerHTML=a.length
 ?a.map(s=>`<div class="signal"><b>СИГНАЛ: ${esc(betLabel(s.bet))}</b><br>Патерн ${esc(s.pattern)} • перевірено ${s.checked}/${s.checkLimit||9} наступних чисел</div>`).join("")
@@ -434,7 +415,7 @@ let b=document.createElement("button");
 b.textContent=n;
 b.className="num "+(n===0?"zero":red.has(n)?"red":"black");
 b.dataset.number=n;
-b.onclick=()=>add(n);
+b.onclick=()=>{enableSound();add(n);};
 $("numbers").append(b);
 }
 
