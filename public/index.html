@@ -6,99 +6,312 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#10151d">
 <title>Lightning Roulette Tracker</title>
+
 <style>
 *{box-sizing:border-box}
-body{margin:0;padding:16px;max-width:900px;margin:auto;background:#10151d;color:#eef3f8;font-family:system-ui}
+
+body{
+margin:0;
+padding:16px;
+max-width:900px;
+margin:auto;
+background:#10151d;
+color:#eef3f8;
+font-family:system-ui
+}
+
 h1{font-size:24px}
 h2{font-size:19px}
 .muted{color:#9eacbc}
-.panel{background:#1a2431;border:1px solid #344253;border-radius:14px;padding:14px;margin:14px 0}
-.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}
-.num{padding:13px 2px;border:0;border-radius:9px;color:white;font-size:17px;font-weight:700;min-height:46px}
+
+.panel{
+background:#1a2431;
+border:1px solid #344253;
+border-radius:14px;
+padding:14px;
+margin:14px 0
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(6,1fr);
+gap:7px
+}
+
+.num{
+padding:13px 2px;
+border:0;
+border-radius:9px;
+color:white;
+font-size:17px;
+font-weight:700;
+min-height:46px
+}
+
 .red{background:#bd3038}
 .black{background:#252b34}
 .zero{background:#16834b}
-.num.selected{outline:3px solid #ffd54a;outline-offset:2px;box-shadow:0 0 0 2px #10151d}
-.stat{display:flex;gap:18px;flex-wrap:wrap}
+
+.num.selected{
+outline:3px solid #ffd54a;
+outline-offset:2px;
+box-shadow:0 0 0 2px #10151d
+}
+
+.stat{
+display:flex;
+gap:18px;
+flex-wrap:wrap
+}
+
 .stat b{font-size:22px}
-.signal{border-left:4px solid #28bd78;padding:10px;background:#142c28;margin:8px 0;border-radius:8px}
-button{font:inherit;background:#34465b;color:white;border:0;border-radius:8px;padding:10px 14px}
-.actions{display:flex;gap:8px;flex-wrap:wrap}
+
+.signal{
+border-left:4px solid #28bd78;
+padding:10px;
+background:#142c28;
+margin:8px 0;
+border-radius:8px
+}
+
+button{
+font:inherit;
+background:#34465b;
+color:white;
+border:0;
+border-radius:8px;
+padding:10px 14px
+}
+
+.actions{
+display:flex;
+gap:8px;
+flex-wrap:wrap
+}
+
 .small{font-size:13px}
+
 .tablewrap{overflow:auto}
-table{width:100%;border-collapse:collapse}
-td,th{text-align:left;padding:7px;border-bottom:1px solid #344253}
-#history{word-break:break-word;line-height:1.8}
-.boards{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:8px 0}
-.board{background:#1a2431;border:1px solid #344253;border-radius:10px;padding:8px;min-width:0}
-.board h2{font-size:14px;margin:0 0 5px}
-.board-item{padding:5px 7px;background:#142c28;border-radius:6px;margin:4px 0;overflow-wrap:anywhere}
-.board-value{font-size:16px;font-weight:800}
-.board-meta{font-size:11px;color:#9eacbc;margin-top:2px}
+
+table{
+width:100%;
+border-collapse:collapse
+}
+
+td,th{
+text-align:left;
+padding:7px;
+border-bottom:1px solid #344253
+}
+
+#history{
+word-break:break-word;
+line-height:1.8
+}
+
+/* ДВА РЯДКИ СИГНАЛУ ТА РЕЗУЛЬТАТУ */
+
+.status-panel{
+background:#1a2431;
+border:1px solid #344253;
+border-radius:14px;
+padding:10px 14px;
+margin:14px 0
+}
+
+.status-line{
+display:flex;
+align-items:flex-start;
+gap:8px;
+padding:10px 0;
+border-bottom:1px solid #344253;
+line-height:1.5;
+overflow-wrap:anywhere
+}
+
+.status-line:last-child{
+border-bottom:0
+}
+
+.status-line b{
+min-width:105px;
+color:#ffd166
+}
+
+#signalBoard{
+color:#28bd78;
+font-weight:700
+}
+
+#resultBoard{
+color:#eef3f8;
+font-weight:700
+}
+
+.boards{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:7px;
+margin:8px 0
+}
+
+.board{
+background:#1a2431;
+border:1px solid #344253;
+border-radius:10px;
+padding:8px;
+min-width:0
+}
+
+.board h2{
+font-size:14px;
+margin:0 0 5px
+}
+
+.board-item{
+padding:5px 7px;
+background:#142c28;
+border-radius:6px;
+margin:4px 0;
+overflow-wrap:anywhere
+}
+
+.board-value{
+font-size:16px;
+font-weight:800
+}
+
+.board-meta{
+font-size:11px;
+color:#9eacbc;
+margin-top:2px
+}
+
 .board-open{color:#ffd166}
 .board-win{color:#28bd78}
 .board-loss{color:#ff7272}
-@media(max-width:560px){.boards{grid-template-columns:1fr}}
+
+@media(max-width:560px){
+.boards{grid-template-columns:1fr}
+.status-line b{min-width:95px}
+}
 </style>
 </head>
+
 <body>
 
 <h1>🎯 Lightning Roulette Tracker</h1>
-<p class="muted">Ручне введення результатів • 52 комбінації + 3 серійні правила • сигнали на сайті</p>
+
+<p class="muted">
+Ручне введення результатів • 52 комбінації + 3 серійні правила • сигнали на сайті
+</p>
+
+<!-- СИГНАЛ І РЕЗУЛЬТАТ -->
+
+<div class="status-panel" aria-live="polite">
+
+<div class="status-line">
+<b>СИГНАЛ:</b>
+<span id="signalBoard" class="muted">—</span>
+</div>
+
+<div class="status-line">
+<b>РЕЗУЛЬТАТ:</b>
+<span id="resultBoard" class="muted">—</span>
+</div>
+
+</div>
+
+<!-- ТАБЛИЦЯ ЧИСЕЛ -->
 
 <div class="panel">
+
 <h2>Натисни число, яке випало</h2>
+
 <div class="grid" id="numbers"></div>
+
 <div class="actions" style="margin-top:10px">
 <button id="undo">Скасувати останнє</button>
 <button id="export">Експорт резервної копії</button>
 <button id="reset">Очистити історію</button>
 </div>
+
 </div>
 
-<div class="boards" aria-live="polite">
-<section class="board">
-<h2>СИГНАЛ</h2>
-<div id="signalBoard" class="muted"></div>
-</section>
-<section class="board">
-<h2>РЕЗУЛЬТАТ</h2>
-<div id="resultBoard" class="muted"></div>
-</section>
-</div>
+<!-- СТАРІ ІНФОРМАЦІЙНІ БЛОКИ -->
 
 <div class="panel">
+
 <h2>Останній результат</h2>
 <div id="last" class="muted">Ще немає чисел</div>
+
 <h2>Активні сигнали</h2>
 <div id="signals" class="muted">Сигналів поки немає</div>
+
 </div>
 
+<!-- СТАТИСТИКА -->
+
 <div class="panel">
+
 <h2>Статистика</h2>
+
 <div class="stat">
-<div><b id="count">0</b><br><span class="muted">Чисел</span></div>
-<div><b id="wins">0</b><br><span class="muted">WIN</span></div>
-<div><b id="losses">0</b><br><span class="muted">LOSS</span></div>
-<div><b id="open">0</b><br><span class="muted">Активних</span></div>
+
+<div>
+<b id="count">0</b><br>
+<span class="muted">Чисел</span>
+</div>
+
+<div>
+<b id="wins">0</b><br>
+<span class="muted">WIN</span>
+</div>
+
+<div>
+<b id="losses">0</b><br>
+<span class="muted">LOSS</span>
+</div>
+
+<div>
+<b id="open">0</b><br>
+<span class="muted">Активних</span>
+</div>
+
 </div>
 </div>
 
+<!-- ЖУРНАЛ -->
+
 <div class="panel">
+
 <h2>Журнал сигналів</h2>
+
 <div class="tablewrap">
+
 <table>
 <thead>
-<tr><th>Патерн</th><th>Ставка</th><th>Статус</th><th>Перевірено</th></tr>
+<tr>
+<th>Патерн</th>
+<th>Ставка</th>
+<th>Статус</th>
+<th>Перевірено</th>
+</tr>
 </thead>
+
 <tbody id="log"></tbody>
 </table>
+
 </div>
 </div>
 
+<!-- ІСТОРІЯ -->
+
 <div class="panel">
+
 <h2>Історія чисел</h2>
 <div id="history" class="muted">—</div>
+
 </div>
 
 <p class="small muted">
@@ -109,18 +322,29 @@ td,th{text-align:left;padding:7px;border-bottom:1px solid #344253}
 </p>
 
 <script>
-const red=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+
+const red=new Set([
+1,3,5,7,9,12,14,16,18,
+19,21,23,25,27,30,32,34,36
+]);
+
 const $=id=>document.getElementById(id);
 
 let rules=[],state;
 
 try{
-state=JSON.parse(localStorage.getItem("lrt-state")||'{"numbers":[],"signals":[]}');
+state=JSON.parse(
+localStorage.getItem("lrt-state")||
+'{"numbers":[],"signals":[]}'
+);
 }catch(e){
 state={numbers:[],signals:[]};
 }
 
-if(!Array.isArray(state.numbers)||!Array.isArray(state.signals)){
+if(
+!Array.isArray(state.numbers)||
+!Array.isArray(state.signals)
+){
 state={numbers:[],signals:[]};
 }
 
@@ -136,27 +360,43 @@ return null;
 }
 
 function hit(n,b){
+
 if(n===0)return false;
+
 if(b==="Червоне")return red.has(n);
 if(b==="Чорне")return !red.has(n);
 if(b==="Парне")return n%2===0;
 if(b==="Непарне")return n%2===1;
 if(b==="Мале")return n<=18;
 if(b==="Велике")return n>=19;
-if(typeof b==="string"&&b.startsWith("Дюжина "))return dozen(n)===Number(b.slice(8));
+
+if(
+typeof b==="string"&&
+b.startsWith("Дюжина ")
+){
+return dozen(n)===Number(b.slice(8));
+}
+
 return false;
 }
 
 function hitBet(n,bet){
-return Array.isArray(bet)?bet.some(b=>hit(n,b)):hit(n,bet);
+return Array.isArray(bet)
+?bet.some(b=>hit(n,b))
+:hit(n,bet);
 }
 
 function betLabel(bet){
-return Array.isArray(bet)?bet.join(" + "):String(bet);
+return Array.isArray(bet)
+?bet.join(" + ")
+:String(bet);
 }
 
 function save(){
-localStorage.setItem("lrt-state",JSON.stringify(state));
+localStorage.setItem(
+"lrt-state",
+JSON.stringify(state)
+);
 render();
 }
 
@@ -172,73 +412,157 @@ return String(s).replace(/[&<>"']/g,c=>({
 
 async function sendTelegram(text){
 try{
+
 let r=await fetch("/api/telegram",{
 method:"POST",
-headers:{"Content-Type":"application/json"},
+headers:{
+"Content-Type":"application/json"
+},
 body:JSON.stringify({text})
 });
-if(!r.ok)console.warn("Telegram API",r.status,await r.text());
+
+if(!r.ok){
+console.warn(
+"Telegram API",
+r.status,
+await r.text()
+);
+}
+
 }catch(e){
 console.warn("Telegram error",e);
 }
 }
 
-// Звук автоматично активується після першого натискання числа.
+// ЗВУК
+
 let audioContext=null;
 let soundEnabled=false;
 let soundQueueTime=0;
 
 function enableSound(){
+
 try{
-const AudioCtx=window.AudioContext||window.webkitAudioContext;
+
+const AudioCtx=
+window.AudioContext||
+window.webkitAudioContext;
+
 if(!AudioCtx)return;
-if(!audioContext)audioContext=new AudioCtx();
+
+if(!audioContext){
+audioContext=new AudioCtx();
+}
+
 audioContext.resume();
 soundEnabled=true;
+
 }catch(e){
 console.warn("Audio error",e);
 }
+
 }
 
 function playSound(kind){
+
 if(!soundEnabled||!audioContext)return;
-const start=Math.max(audioContext.currentTime+0.03,soundQueueTime);
+
+const start=Math.max(
+audioContext.currentTime+0.03,
+soundQueueTime
+);
+
 const notes=kind==="signal"
-?[{f:880,d:0.16},{f:1175,d:0.18},{f:1480,d:0.24}]
-:[{f:660,d:0.20},{f:990,d:0.20},{f:1320,d:0.28}];
+?[
+{f:880,d:0.16},
+{f:1175,d:0.18},
+{f:1480,d:0.24}
+]
+:[
+{f:660,d:0.20},
+{f:990,d:0.20},
+{f:1320,d:0.28}
+];
+
 let t=start;
+
 for(const note of notes){
+
 const osc=audioContext.createOscillator();
 const gain=audioContext.createGain();
+
 osc.type="sine";
-osc.frequency.setValueAtTime(note.f,t);
-gain.gain.setValueAtTime(0.0001,t);
-gain.gain.exponentialRampToValueAtTime(0.22,t+0.025);
-gain.gain.exponentialRampToValueAtTime(0.0001,t+note.d);
+
+osc.frequency.setValueAtTime(
+note.f,t
+);
+
+gain.gain.setValueAtTime(
+0.0001,t
+);
+
+gain.gain.exponentialRampToValueAtTime(
+0.22,t+0.025
+);
+
+gain.gain.exponentialRampToValueAtTime(
+0.0001,t+note.d
+);
+
 osc.connect(gain);
 gain.connect(audioContext.destination);
+
 osc.start(t);
 osc.stop(t+note.d+0.02);
+
 t+=note.d+0.07;
-}
-soundQueueTime=t+0.12;
+
 }
 
+soundQueueTime=t+0.12;
+
+}
+
+// ПОВІДОМЛЕННЯ ПРО СИГНАЛ
+
 async function notify(sig){
+
 playSound("signal");
+
 const limit=sig.checkLimit||9;
+
 await sendTelegram(`🚨 LIGHTNING ROULETTE — НОВИЙ СИГНАЛ
 Комбінація: ${sig.pattern}
 Ставка: ${betLabel(sig.bet)}
 Перевірка починається з наступного числа.
 Очікуємо до ${limit} чисел.`);
+
 }
 
+// ПОВІДОМЛЕННЯ ПРО РЕЗУЛЬТАТ
+
 async function notifyResult(sig,n){
+
 playSound("result");
-const color=n===0?"Зелений нуль":red.has(n)?"Червоне":"Чорне";
-const parity=n===0?"—":n%2===0?"Парне":"Непарне";
-const size=n===0?"—":n<=18?"Мале":"Велике";
+
+const color=n===0
+?"Зелений нуль"
+:red.has(n)
+?"Червоне"
+:"Чорне";
+
+const parity=n===0
+?"—"
+:n%2===0
+?"Парне"
+:"Непарне";
+
+const size=n===0
+?"—"
+:n<=18
+?"Мале"
+:"Велике";
+
 const win=sig.status==="WIN";
 const limit=sig.checkLimit||9;
 
@@ -248,217 +572,528 @@ await sendTelegram(`${win?"🏆 WIN":"❌ LOSS"} — LIGHTNING ROULETTE
 Результатне число: ${n} (${color}, ${parity}, ${size})
 Спроба: ${sig.checked}/${limit}
 Результат: ${win?"виграш":limit+" перевірок без влучання"}`);
+
 }
+
+// ПЕРЕВІРКА ЗВИЧАЙНИХ ПРАВИЛ
 
 function matchesRule(r){
-if(!Array.isArray(r.conditions)||![8,10,11].includes(r.conditions.length))return false;
-if(state.numbers.length<r.conditions.length)return false;
 
-const recent=state.numbers.slice(-r.conditions.length);
+if(
+!Array.isArray(r.conditions)||
+![8,10,11].includes(r.conditions.length)
+)return false;
+
+if(
+state.numbers.length<
+r.conditions.length
+)return false;
+
+const recent=state.numbers.slice(
+-r.conditions.length
+);
 
 return r.conditions.every((condition,i)=>{
+
 const n=recent[i];
-if(condition==="М"||condition==="В")return bucket(n)===condition;
-return hit(n,condition);
-});
+
+if(
+condition==="М"||
+condition==="В"
+){
+return bucket(n)===condition;
 }
 
+return hit(n,condition);
+
+});
+
+}
+
+// СЕРІЙНІ ПРАВИЛА
+
 function streakValue(n,category){
+
 if(n===0)return null;
-if(category==="color")return red.has(n)?"Червоне":"Чорне";
-if(category==="parity")return n%2===0?"Парне":"Непарне";
-if(category==="size")return n<=18?"Мале":"Велике";
-if(category==="dozen")return dozen(n);
+
+if(category==="color"){
+return red.has(n)?"Червоне":"Чорне";
+}
+
+if(category==="parity"){
+return n%2===0?"Парне":"Непарне";
+}
+
+if(category==="size"){
+return n<=18?"Мале":"Велике";
+}
+
+if(category==="dozen"){
+return dozen(n);
+}
+
 return null;
+
 }
 
 function trailingStreak(values,key){
+
 let count=0;
+
 for(let i=values.length-1;i>=0;i--){
+
 if(values[i]!==key)break;
+
 count++;
+
 }
+
 return count;
+
 }
 
 function matchesStreakRule(r){
-if(r.type!=="streak"||state.numbers.length<r.count)return null;
-const current=streakValue(state.numbers.at(-1),r.category);
+
+if(
+r.type!=="streak"||
+state.numbers.length<r.count
+)return null;
+
+const current=streakValue(
+state.numbers.at(-1),
+r.category
+);
+
 if(current===null)return null;
-const values=state.numbers.map(n=>streakValue(n,r.category));
-const currentRun=trailingStreak(values,current);
-const previousRun=trailingStreak(values.slice(0,-1),current);
-return currentRun>=r.count&&previousRun<r.count?current:null;
+
+const values=state.numbers.map(
+n=>streakValue(n,r.category)
+);
+
+const currentRun=trailingStreak(
+values,current
+);
+
+const previousRun=trailingStreak(
+values.slice(0,-1),
+current
+);
+
+return currentRun>=r.count&&
+previousRun<r.count
+?current
+:null;
+
 }
 
 function streakPattern(r,value){
-if(r.category==="dozen")return `${r.count} чисел ${value}-ї дюжини підряд`;
+
+if(r.category==="dozen"){
+return `${r.count} чисел ${value}-ї дюжини підряд`;
+}
+
 return r.category==="color"
 ?`${r.count} ${value.toLowerCase()} підряд`
 :r.category==="parity"
 ?`${r.count} ${value.toLowerCase()} підряд`
 :`${r.count} ${value.toLowerCase()} підряд`;
+
 }
 
+// ДОДАВАННЯ ЧИСЛА
+
 function add(n,send=true){
-// Завершені сигнали зникають з верхніх полів після наступного введеного числа.
-// Тригерне число не входить у перевірку.
+
+// Перевірка вже активних сигналів.
+// Число, яке створило сигнал, не входить у перевірку.
+
 for(const s of state.signals){
+
 if(s.status!=="OPEN")continue;
 
 s.checked++;
+
 const limit=s.checkLimit||9;
 
 if(hitBet(n,s.bet)){
+
 s.status="WIN";
 s.resolvedAt=state.numbers.length+1;
 s.resultNumber=n;
 s.resultAttempt=s.checked;
+
 if(send)notifyResult(s,n);
+
 }else if(s.checked>=limit){
+
 s.status="LOSS";
 s.resolvedAt=state.numbers.length+1;
 s.resultNumber=n;
 s.resultAttempt=s.checked;
+
 if(send)notifyResult(s,n);
+
 }
+
 }
+
+// Додаємо нове число
 
 state.numbers.push(n);
 
+// Перевіряємо всі правила
+
 for(const r of rules){
+
+// СЕРІЙНІ ПРАВИЛА
+
 if(r.type==="streak"){
+
 const value=matchesStreakRule(r);
+
 if(value===null)continue;
+
 const bet=r.bets[String(value)];
+
 if(!bet)continue;
 
 const sig={
+
 pattern:streakPattern(r,value),
+
 rulePattern:r.pattern,
+
 bet,
+
 checkLimit:r.checkLimit||9,
+
 status:"OPEN",
-checked:0
+
+checked:0,
+
+createdAt:state.numbers.length
+
 };
+
 state.signals.push(sig);
+
 if(send)notify(sig);
+
 continue;
+
 }
 
-if(!Array.isArray(r.conditions)||![8,10,11].includes(r.conditions.length))continue;
-if(state.numbers.length>=r.conditions.length&&matchesRule(r)){
+// ЗВИЧАЙНІ ПРАВИЛА
+
+if(
+!Array.isArray(r.conditions)||
+![8,10,11].includes(r.conditions.length)
+)continue;
+
+if(
+state.numbers.length>=r.conditions.length&&
+matchesRule(r)
+){
+
 const sig={
+
 pattern:r.pattern,
+
 rulePattern:r.pattern,
+
 bet:r.bet,
+
 checkLimit:r.checkLimit||9,
+
 status:"OPEN",
-checked:0
+
+checked:0,
+
+createdAt:state.numbers.length
+
 };
+
 state.signals.push(sig);
+
 if(send)notify(sig);
+
 }
+
 }
 
 save();
+
 }
 
+// ПОВТОРНЕ ВІДТВОРЕННЯ ІСТОРІЇ
+
 function replay(a){
-state={numbers:[],signals:[]};
+
+state={
+numbers:[],
+signals:[]
+};
+
 a.forEach(n=>add(n,false));
+
 }
+
+// ВІДОБРАЖЕННЯ САЙТУ
 
 function render(){
 
 let n=state.numbers.at(-1);
 
-document.querySelectorAll(".num").forEach(b=>b.classList.toggle("selected",Number(b.dataset.number)===n));
+document.querySelectorAll(".num").forEach(b=>{
+
+b.classList.toggle(
+"selected",
+Number(b.dataset.number)===n
+);
+
+});
+
+// ОСТАННЄ ЧИСЛО
 
 $("last").textContent=n===undefined
 ?"Ще немає чисел"
-:`${n} — ${n===0?"зелений нуль":red.has(n)?"червоне":"чорне"}; ${n===0?"—":(n%2===0?"парне":"непарне")+", "+(n<=18?"мале":"велике")}`;
+:`${n} — ${
+n===0
+?"зелений нуль"
+:red.has(n)
+?"червоне"
+:"чорне"
+}; ${
+n===0
+?"—"
+:(n%2===0?"парне":"непарне")+
+", "+
+(n<=18?"мале":"велике")
+}`;
 
-let a=state.signals.filter(s=>s.status==="OPEN");
+// НОВІ СИГНАЛИ ПІСЛЯ ОСТАННЬОГО ЧИСЛА
 
-const recentSignals=state.signals.filter(s=>s.status==="OPEN"||s.resolvedAt===state.numbers.length).slice(-5).reverse();
+const currentSignals=state.signals.filter(
+s=>s.createdAt===state.numbers.length
+);
 
-$("signalBoard").innerHTML=recentSignals.length
-?recentSignals.map(s=>`<div class="board-item"><div class="board-value">${esc(betLabel(s.bet))}</div></div>`).join("")
-:"";
+// РЕЗУЛЬТАТИ, ЯКІ ЗАВЕРШИЛИСЯ ПІСЛЯ ОСТАННЬОГО ЧИСЛА
 
-$("resultBoard").innerHTML=recentSignals.length
-?recentSignals.filter(s=>s.status!=="OPEN").map(s=>{
-const cls=s.status==="WIN"?"board-win":"board-loss";
-return `<div class="board-item"><div class="board-value ${cls}">${s.status} ${s.resultAttempt}/${s.checkLimit||9}</div></div>`;
-}).join("")
-:"";
+const currentResults=state.signals.filter(
+s=>
+s.resolvedAt===state.numbers.length&&
+(
+s.status==="WIN"||
+s.status==="LOSS"
+)
+);
+
+// УСІ СИГНАЛИ В ОДНОМУ РЯДКУ
+
+$("signalBoard").textContent=
+currentSignals.length
+?currentSignals
+.map(s=>betLabel(s.bet))
+.join(", ")
+:"—";
+
+// УСІ РЕЗУЛЬТАТИ В ОДНОМУ РЯДКУ
+
+$("resultBoard").textContent=
+currentResults.length
+?currentResults.map(s=>
+`${s.status} ${s.resultAttempt}/${s.checkLimit||9}`
+).join(", ")
+:"—";
+
+// АКТИВНІ СИГНАЛИ
+
+let a=state.signals.filter(
+s=>s.status==="OPEN"
+);
 
 $("signals").innerHTML=a.length
-?a.map(s=>`<div class="signal"><b>СИГНАЛ: ${esc(betLabel(s.bet))}</b><br>Патерн ${esc(s.pattern)} • перевірено ${s.checked}/${s.checkLimit||9} наступних чисел</div>`).join("")
+?a.map(s=>
+`<div class="signal">
+<b>СИГНАЛ: ${esc(betLabel(s.bet))}</b><br>
+Патерн ${esc(s.pattern)}
+• перевірено ${s.checked}/${s.checkLimit||9}
+</div>`
+).join("")
 :"Немає активних сигналів";
 
-$("count").textContent=state.numbers.length;
-$("wins").textContent=state.signals.filter(s=>s.status==="WIN").length;
-$("losses").textContent=state.signals.filter(s=>s.status==="LOSS").length;
+// СТАТИСТИКА
+
+$("count").textContent=
+state.numbers.length;
+
+$("wins").textContent=
+state.signals.filter(
+s=>s.status==="WIN"
+).length;
+
+$("losses").textContent=
+state.signals.filter(
+s=>s.status==="LOSS"
+).length;
+
 $("open").textContent=a.length;
 
-$("log").innerHTML=state.signals.slice().reverse().map(s=>
-`<tr><td>${esc(s.pattern)}</td><td>${esc(betLabel(s.bet))}</td><td>${esc(s.status)}</td><td>${s.checked}/${s.checkLimit||9}</td></tr>`
+// ЖУРНАЛ СИГНАЛІВ
+
+$("log").innerHTML=
+state.signals.slice().reverse().map(s=>
+`<tr>
+<td>${esc(s.pattern)}</td>
+<td>${esc(betLabel(s.bet))}</td>
+<td>${esc(s.status)}</td>
+<td>${s.checked}/${s.checkLimit||9}</td>
+</tr>`
 ).join("");
 
-$("history").textContent=state.numbers.slice().reverse().join(" · ")||"—";
+// ІСТОРІЯ ЧИСЕЛ
+
+$("history").textContent=
+state.numbers.slice().reverse().join(" · ")||"—";
+
 }
+
+// СТВОРЕННЯ КНОПОК ЧИСЕЛ
 
 for(let n=0;n<=36;n++){
+
 let b=document.createElement("button");
+
 b.textContent=n;
-b.className="num "+(n===0?"zero":red.has(n)?"red":"black");
+
+b.className="num "+
+(
+n===0
+?"zero"
+:red.has(n)
+?"red"
+:"black"
+);
+
 b.dataset.number=n;
-b.onclick=()=>{enableSound();add(n);};
+
+b.onclick=()=>{
+enableSound();
+add(n);
+};
+
 $("numbers").append(b);
+
 }
+
+// СКАСУВАТИ ОСТАННЄ ЧИСЛО
 
 $("undo").onclick=()=>{
-if(state.numbers.length)
-replay(state.numbers.slice(0,-1));
+
+if(state.numbers.length){
+
+replay(
+state.numbers.slice(0,-1)
+);
+
+}
+
 };
+
+// ОЧИСТИТИ ІСТОРІЮ
 
 $("reset").onclick=()=>{
+
 if(confirm("Очистити історію?")){
-state={numbers:[],signals:[]};
-save();
-}
+
+state={
+numbers:[],
+signals:[]
 };
+
+save();
+
+}
+
+};
+
+// ЕКСПОРТ РЕЗЕРВНОЇ КОПІЇ
 
 $("export").onclick=()=>{
+
 let a=document.createElement("a");
-a.href=URL.createObjectURL(new Blob(
-[JSON.stringify({numbers:state.numbers},null,2)],
+
+a.href=URL.createObjectURL(
+new Blob(
+[
+JSON.stringify(
+{numbers:state.numbers},
+null,
+2
+)
+],
 {type:"application/json"}
-));
+)
+);
+
 a.download="roulette-backup.json";
+
 a.click();
+
 URL.revokeObjectURL(a.href);
+
 };
 
+// ЗАВАНТАЖЕННЯ ПРАВИЛ
+
 fetch("/rules.json")
+
 .then(r=>{
-if(!r.ok)throw Error("rules.json не знайдено");
+
+if(!r.ok){
+throw Error("rules.json не знайдено");
+}
+
 return r.json();
+
 })
+
 .then(x=>{
+
 rules=x;
-const currentPatterns=new Set(rules.map(r=>r.pattern));
-state.signals=state.signals.filter(s=>s.status!=="OPEN"||currentPatterns.has(s.rulePattern||s.pattern));
-localStorage.setItem("lrt-state",JSON.stringify(state));
+
+const currentPatterns=new Set(
+rules.map(r=>r.pattern)
+);
+
+state.signals=state.signals.filter(
+s=>
+s.status!=="OPEN"||
+currentPatterns.has(
+s.rulePattern||s.pattern
+)
+);
+
+localStorage.setItem(
+"lrt-state",
+JSON.stringify(state)
+);
+
 render();
+
 })
+
 .catch(e=>{
-$("signals").textContent="Помилка завантаження правил: "+e.message;
+
+$("signals").textContent=
+"Помилка завантаження правил: "+
+e.message;
+
 });
 
 render();
+
 </script>
+
 </body>
 </html>
