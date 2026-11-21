@@ -13,17 +13,17 @@ h1{font-size:24px}
 h2{font-size:19px}
 .muted{color:#9eacbc}
 .panel{background:#1a2431;border:1px solid #344253;border-radius:14px;padding:14px;margin:14px 0}
-.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;align-items:start}
-.zero-wrap{display:flex;flex-direction:column;gap:6px;min-width:0}
-.zero-wrap .num{width:100%}
-.zero-dock{display:flex;flex-direction:column;gap:5px}
-.dock-signal{font-size:11px;line-height:1.25;background:#203c32;border:1px solid #28bd78;border-radius:7px;padding:5px 4px;text-align:center;overflow-wrap:anywhere}
-.dock-signal .attempt{display:block;color:#ffd54a;font-weight:700}
-.dock-signal.done{border-color:#8595a8;background:#273444}
-.dock-signal.win{border-color:#28bd78}
-.dock-signal.loss{border-color:#bd3038}
-.signal-result{font-size:12px;font-weight:700;margin-top:4px}
-@media(max-width:520px){.grid{gap:5px}.num{font-size:15px;padding:10px 2px}.dock-signal{font-size:10px;padding:4px 2px}}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}
+.signal-board{width:100%;margin:0 0 14px}
+.signal-board-title{font-size:20px;font-weight:800;text-align:center;letter-spacing:.08em;margin:0 0 10px}
+.signal-card{background:#142c28;border:1px solid #28664f;border-radius:12px;padding:12px;margin:9px 0;text-align:center}
+.signal-card .bet-name{font-size:clamp(21px,4vw,30px);font-weight:850;line-height:1.2;margin:5px 0 9px}
+.signal-card .result-title{font-weight:800;letter-spacing:.06em;margin-top:8px}
+.signal-card .result-value{font-size:19px;font-weight:750;margin-top:3px}
+.signal-card.win{background:#123a2b;border-color:#27bd78}
+.signal-card.loss{background:#3b2025;border-color:#bd4650}
+.signal-card.pending{background:#1b2b3c;border-color:#4b759c}
+.signal-meta{font-size:14px;color:#c3d0dd}
 .num{padding:13px 2px;border:0;border-radius:9px;color:white;font-size:17px;font-weight:700;min-height:46px}
 .red{background:#bd3038}
 .black{background:#252b34}
@@ -47,7 +47,11 @@ td,th{text-align:left;padding:7px;border-bottom:1px solid #344253}
 <p class="muted">Ручне введення результатів • 52 комбінації + 3 серійні правила • сигнали на сайті</p>
 
 <div class="panel">
-<h2>Натисни число, яке випало</h2>
+<div class="signal-board">
+  <div class="signal-board-title">СТАВКА</div>
+  <div id="signalBoard" class="muted">Очікуємо перший сигнал</div>
+</div>
+<h2 style="text-align:center">Натисни число, яке випало</h2>
 <div class="grid" id="numbers"></div>
 <div class="actions" style="margin-top:10px">
 <button id="undo">Скасувати останнє</button>
@@ -59,7 +63,7 @@ td,th{text-align:left;padding:7px;border-bottom:1px solid #344253}
 <div class="panel">
 <h2>Останній результат</h2>
 <div id="last" class="muted">Ще немає чисел</div>
-<h2>Активні сигнали</h2>
+<h2>Стан системи</h2>
 <div id="signals" class="muted">Сигналів поки немає</div>
 </div>
 
@@ -78,7 +82,7 @@ td,th{text-align:left;padding:7px;border-bottom:1px solid #344253}
 <div class="tablewrap">
 <table>
 <thead>
-<tr><th>Патерн</th><th>Ставка</th><th>Статус</th><th>Спроби</th><th>Результат №</th></tr>
+<tr><th>Патерн</th><th>Ставка</th><th>Статус</th><th>Перевірено</th></tr>
 </thead>
 <tbody id="log"></tbody>
 </table>
@@ -141,7 +145,7 @@ return Array.isArray(bet)?bet.some(b=>hit(n,b)):hit(n,bet);
 }
 
 function betLabel(bet){
-return Array.isArray(bet)?bet.join(" + "):String(bet);
+return Array.isArray(bet)?bet.join(", "):String(bet);
 }
 
 function save(){
@@ -172,24 +176,26 @@ console.warn("Telegram error",e);
 }
 }
 
-let audioContext=null;
 function playAlert(kind){
 try{
-const AC=window.AudioContext||window.webkitAudioContext;
-if(!AC)return;
-if(!audioContext)audioContext=new AC();
-if(audioContext.state==="suspended")audioContext.resume();
-const notes=kind==="signal"?[880,660]:kind==="win"?[1046,1318]:[330,220];
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+if(!AudioCtx)return;
+const ctx=new AudioCtx();
+const notes=kind==="signal"?[660,880]:kind==="win"?[880,1175,1480]:[440,330];
+let start=ctx.currentTime;
 notes.forEach((freq,i)=>{
-const osc=audioContext.createOscillator(),gain=audioContext.createGain();
-osc.type="sine";osc.frequency.value=freq;
-gain.gain.setValueAtTime(0.0001,audioContext.currentTime+i*0.14);
-gain.gain.exponentialRampToValueAtTime(0.18,audioContext.currentTime+i*0.14+0.02);
-gain.gain.exponentialRampToValueAtTime(0.0001,audioContext.currentTime+i*0.14+0.18);
-osc.connect(gain);gain.connect(audioContext.destination);
-osc.start(audioContext.currentTime+i*0.14);osc.stop(audioContext.currentTime+i*0.14+0.2);
+const osc=ctx.createOscillator();
+const gain=ctx.createGain();
+osc.type="sine";
+osc.frequency.value=freq;
+gain.gain.setValueAtTime(0.0001,start+i*0.16);
+gain.gain.exponentialRampToValueAtTime(0.16,start+i*0.16+0.02);
+gain.gain.exponentialRampToValueAtTime(0.0001,start+i*0.16+0.13);
+osc.connect(gain);gain.connect(ctx.destination);
+osc.start(start+i*0.16);osc.stop(start+i*0.16+0.14);
 });
-}catch(e){console.warn("Audio alert error",e);}
+setTimeout(()=>ctx.close(),notes.length*180+250);
+}catch(e){console.warn("Audio alert unavailable",e);}
 }
 
 async function notify(sig){
@@ -348,18 +354,28 @@ $("last").textContent=n===undefined
 :`${n} — ${n===0?"зелений нуль":red.has(n)?"червоне":"чорне"}; ${n===0?"—":(n%2===0?"парне":"непарне")+", "+(n<=18?"мале":"велике")}`;
 
 let a=state.signals.filter(s=>s.status==="OPEN");
-const recentClosed=state.signals.filter(s=>s.status!=="OPEN").slice(-4).reverse();
-function signalCard(s){
-const limit=s.checkLimit||9,closed=s.status!=="OPEN";
-const statusText=closed?(s.status==="WIN"?"🏆 WIN":"❌ LOSS"):"Очікується: WIN або LOSS";
-const resultLine=closed?`<div class="signal-result">${statusText} • число ${s.resultNumber} • спроба ${s.resultAttempt||s.checked}/${limit}</div>`:"";
-return `<div class="signal"><b>${closed?statusText:"АКТИВНИЙ СИГНАЛ"}: ${esc(betLabel(s.bet))}</b><br>Патерн ${esc(s.pattern)}<br><span class="attempt">Перевірка ${s.checked}/${limit}</span>${resultLine}</div>`;
-}
-$("signals").innerHTML=a.length||recentClosed.length
-?[...a.map(signalCard),...recentClosed.map(signalCard)].join("")
+const shownSignals=state.signals.slice(-8).reverse();
+$("signalBoard").innerHTML=shownSignals.length
+?shownSignals.map(s=>{
+const limit=s.checkLimit||9;
+const status=s.status==="OPEN"?"ОЧІКУЄМО":s.status;
+const cls=s.status==="WIN"?"win":s.status==="LOSS"?"loss":"pending";
+const result=s.status==="OPEN"
+?`Очікуємо результат • спроба ${s.checked}/${limit}`
+:`${s.status} — число ${s.resultNumber} • спроба ${s.resultAttempt||s.checked} з ${limit}`;
+return `<div class="signal-card ${cls}">
+<div class="signal-board-title">СТАВКА</div>
+<div class="bet-name">${esc(betLabel(s.bet))}</div>
+<div class="signal-meta">Патерн: ${esc(s.pattern)}</div>
+<div class="result-title">РЕЗУЛЬТАТ</div>
+<div class="result-value">${esc(result)}</div>
+</div>`;
+}).join("")
 :"Немає активних сигналів";
-const dock=$("zeroDock");
-dock.innerHTML=a.length? a.map(s=>`<div class="dock-signal"><b>${esc(betLabel(s.bet))}</b><span class="attempt">${s.checked}/${s.checkLimit||9}</span><span>WIN / LOSS</span></div>`).join("") : recentClosed.slice(0,2).map(s=>`<div class="dock-signal done ${s.status.toLowerCase()}"><b>${esc(betLabel(s.bet))}</b><span class="attempt">${s.status} · #${s.resultNumber}</span></div>`).join("");
+
+$("signals").innerHTML=a.length
+?a.map(s=>`<div class="signal"><b>СИГНАЛ: ${esc(betLabel(s.bet))}</b><br>Патерн ${esc(s.pattern)} • перевірено ${s.checked}/${s.checkLimit||9} наступних чисел</div>`).join("")
+:"Немає активних сигналів";
 
 $("count").textContent=state.numbers.length;
 $("wins").textContent=state.signals.filter(s=>s.status==="WIN").length;
@@ -367,7 +383,7 @@ $("losses").textContent=state.signals.filter(s=>s.status==="LOSS").length;
 $("open").textContent=a.length;
 
 $("log").innerHTML=state.signals.slice().reverse().map(s=>
-`<tr><td>${esc(s.pattern)}</td><td>${esc(betLabel(s.bet))}</td><td>${esc(s.status)}</td><td>${s.resultAttempt||s.checked}/${s.checkLimit||9}</td><td>${s.resultNumber??"—"}</td></tr>`
+`<tr><td>${esc(s.pattern)}</td><td>${esc(betLabel(s.bet))}</td><td>${esc(s.status)}</td><td>${s.checked}/${s.checkLimit||9}</td></tr>`
 ).join("");
 
 $("history").textContent=state.numbers.slice().reverse().join(" · ")||"—";
@@ -379,11 +395,7 @@ b.textContent=n;
 b.className="num "+(n===0?"zero":red.has(n)?"red":"black");
 b.dataset.number=n;
 b.onclick=()=>add(n);
-if(n===0){
-const wrap=document.createElement("div");wrap.className="zero-wrap";
-const dock=document.createElement("div");dock.className="zero-dock";dock.id="zeroDock";
-wrap.append(dock,b);$("numbers").append(wrap);
-}else $("numbers").append(b);
+$("numbers").append(b);
 }
 
 $("undo").onclick=()=>{
