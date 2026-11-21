@@ -100,7 +100,6 @@ td,th{
  line-height:1.8
 }
 
-/* Два рядки сигналу та результату */
 .boards{
  display:grid;
  grid-template-columns:1fr;
@@ -152,7 +151,6 @@ td,th{
 Ручне введення результатів • 52 комбінації + 3 серійні правила • сигнали на сайті
 </p>
 
-<!-- СИГНАЛ І РЕЗУЛЬТАТ НАД ТАБЛИЦЕЮ -->
 <div class="boards" aria-live="polite">
 
 <section class="board">
@@ -162,7 +160,7 @@ td,th{
 
 <section class="board">
 <h2>🏆 РЕЗУЛЬТАТ</h2>
-<div id="resultBoard" class="muted">Результатів поки немає</div>
+<div id="resultBoard"></div>
 </section>
 
 </div>
@@ -244,6 +242,8 @@ const red=new Set([
 const $=id=>document.getElementById(id);
 
 let rules=[],state;
+
+let resultBoardTimer=null;
 
 try{
  state=JSON.parse(
@@ -354,12 +354,6 @@ function enableSound(){
  }
 }
 
-/*
- SIGNAL = оригінальний звук (3 ноти)
- WIN = окремий високий звук (2 ноти)
- LOSS = окремий низький звук (2 ноти)
-*/
-
 function playSound(kind){
 
  if(!soundEnabled||!audioContext)return;
@@ -383,19 +377,17 @@ function playSound(kind){
  }
  else if(kind==="win"){
 
-  // Новий звук WIN.
+  // WIN — один довгий високий сигнал.
   notes=[
-   {f:1400,d:0.16},
-   {f:1800,d:0.30}
+   {f:1400,d:1.1}
   ];
 
  }
  else{
 
-  // Новий звук LOSS.
+  // LOSS — один довгий низький сигнал.
   notes=[
-   {f:260,d:0.30},
-   {f:180,d:0.40}
+   {f:260,d:0.9}
   ];
 
  }
@@ -450,7 +442,7 @@ async function notifyResult(sig,n){
 
  const win=sig.status==="WIN";
 
- // Тільки результат отримує новий звук.
+ // Звук результату.
  playSound(win?"win":"loss");
 
  const color=n===0
@@ -473,6 +465,32 @@ async function notifyResult(sig,n){
 Результатне число: ${n} (${color}, ${parity}, ${size})
 Спроба: ${sig.checked}/${limit}
 Результат: ${win?"виграш":limit+" перевірок без влучання"}`);
+}
+
+/* ПОКАЗ WIN У ПОЛІ РЕЗУЛЬТАТУ */
+
+function showWinResult(sig){
+
+ const board=$("resultBoard");
+
+ // Показуємо тільки WIN.
+ board.innerHTML=`
+  <div class="board-value board-win">
+   WIN ${sig.resultAttempt}/${sig.checkLimit||9}
+  </div>
+ `;
+
+ // Попередній таймер скасовуємо,
+ // якщо надійшов ще один WIN.
+ if(resultBoardTimer!==null){
+  clearTimeout(resultBoardTimer);
+ }
+
+ // Через 3 секунди поле стає порожнім.
+ resultBoardTimer=setTimeout(()=>{
+  board.innerHTML="";
+  resultBoardTimer=null;
+ },3000);
 }
 
 /* ПЕРЕВІРКА ЗВИЧАЙНИХ ПРАВИЛ */
@@ -594,7 +612,10 @@ function add(n,send=true){
    s.resultNumber=n;
    s.resultAttempt=s.checked;
 
-   if(send)notifyResult(s,n);
+   if(send){
+    showWinResult(s);
+    notifyResult(s,n);
+   }
 
   }else if(s.checked>=limit){
 
@@ -671,6 +692,9 @@ function replay(a){
  state={numbers:[],signals:[]};
 
  a.forEach(n=>add(n,false));
+
+ // Після відтворення історії поле результату порожнє.
+ $("resultBoard").innerHTML="";
 }
 
 /* ВІДОБРАЖЕННЯ */
@@ -701,7 +725,7 @@ function render(){
   s=>s.status==="OPEN"
  );
 
- // РЯДОК СИГНАЛУ: усі активні сигнали через кому.
+ // Усі активні сигнали через кому.
 
  $("signalBoard").innerHTML=active.length
   ?`<div class="board-value board-open">${
@@ -709,28 +733,8 @@ function render(){
    }</div>`
   :"Сигналів поки немає";
 
- // РЯДОК РЕЗУЛЬТАТУ: останні завершені результати.
-
- const results=state.signals
-  .filter(s=>s.status==="WIN"||s.status==="LOSS")
-  .slice(-8)
-  .reverse();
-
- $("resultBoard").innerHTML=results.length
-  ?results.map(s=>{
-
-    const cls=s.status==="WIN"
-     ?"board-win"
-     :"board-loss";
-
-    return `<span class="${cls}" style="margin-right:12px">
-      ${s.status} ${s.resultAttempt}/${s.checkLimit||9}
-    </span>`;
-
-   }).join("")
-  :"Результатів поки немає";
-
- // Активні сигнали з прогресом.
+ // Поле результату не заповнюється через render().
+ // Його заповнює тільки showWinResult().
 
  $("signals").innerHTML=active.length
   ?active.map(s=>`
@@ -804,6 +808,13 @@ $("undo").onclick=()=>{
 $("reset").onclick=()=>{
 
  if(confirm("Очистити історію?")){
+
+  if(resultBoardTimer!==null){
+   clearTimeout(resultBoardTimer);
+   resultBoardTimer=null;
+  }
+
+  $("resultBoard").innerHTML="";
 
   state={numbers:[],signals:[]};
 
