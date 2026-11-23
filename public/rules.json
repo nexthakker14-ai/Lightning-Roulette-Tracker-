@@ -685,21 +685,6 @@
     "checkLimit": 5
   },
   {
-    "pattern": "МВВМВМММ",
-    "conditions": [
-      "М",
-      "В",
-      "В",
-      "М",
-      "В",
-      "М",
-      "М",
-      "М"
-    ],
-    "bet": "Велике",
-    "checkLimit": 5
-  },
-  {
     "pattern": "ВВММВМВМ",
     "conditions": [
       "В",
