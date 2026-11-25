@@ -790,21 +790,6 @@
     "checkLimit": 6
   },
   {
-    "pattern": "ВВММММММ",
-    "conditions": [
-      "В",
-      "В",
-      "М",
-      "М",
-      "М",
-      "М",
-      "М",
-      "М"
-    ],
-    "bet": "Непарне",
-    "checkLimit": 6
-  },
-  {
     "type": "streak",
     "pattern": "9 одного кольору підряд",
     "category": "color",
